@@ -45,7 +45,7 @@ class ONNXModel:
 
     def forward(self, image_tensors):
         """do infernece
-        :param onnx_path: list, inputs of model.
+        :param image_tensors: list, inputs of model.
         return outputs: list, outputs of model.
         """
         input_feed = {}

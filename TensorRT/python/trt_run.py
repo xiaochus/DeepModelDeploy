@@ -106,7 +106,7 @@ class TRTModel:
 
     def forward(self, image_tensors):
         """do infernece
-        :param onnx_path: list, inputs tensor of model.
+        :param image_tensors: list, inputs tensor of model.
         :return outputs: list, outputs tensor of model.
         """
 
