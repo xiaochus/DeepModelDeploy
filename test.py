@@ -3,6 +3,7 @@ from utils.utils import process_image
 from ONNX.python.onnx_run import ONNXModel
 from TensorRT.python.trt_run import TRTModel
 from RKNN.python.rknn_run import RKNNMolde
+from Mnn.python.mnn_run import MNNModel
 
 
 if __name__ == '__main__':
@@ -17,7 +18,11 @@ if __name__ == '__main__':
     # output = model.forward([img])
     # print(output[0].shape)
 
-    model = RKNNMolde("net.onnx", "net.rknn", "hybrid", quant_data_file="dataset.txt")
+    # model = RKNNMolde("net.onnx", "net.rknn", "hybrid", quant_data_file="dataset.txt")
+    # output = model.forward([img])
+    # print(output[0].shape)
+    # model.perf([img])
+
+    model = MNNModel("net.mnn")
     output = model.forward([img])
     print(output[0].shape)
-    model.perf([img])
