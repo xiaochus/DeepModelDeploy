@@ -18,11 +18,19 @@ if __name__ == '__main__':
     # output = model.forward([img])
     # print(output[0].shape)
 
+    model = TRTModel("net.onnx", "net.plan", "int8",
+                     calibration_dataset="dataset.txt", 
+                     calibration_image_size=(224, 224), 
+                     calibration_mean=[0, 0, 0],
+                     calibration_std=[1, 1, 1])
+    output = model.forward([img])
+    print(output[0].shape)
+
     # model = RKNNMolde("net.onnx", "net.rknn", "hybrid", quant_data_file="dataset.txt")
     # output = model.forward([img])
     # print(output[0].shape)
     # model.perf([img])
 
-    model = MNNModel("net.mnn")
-    output = model.forward([img])
-    print(output[0].shape)
+    # model = MNNModel("net.mnn")
+    # output = model.forward([img])
+    # print(output[0].shape)

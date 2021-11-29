@@ -6,11 +6,18 @@ from .utils import common, calibrator
 
 
 class TRTModel:
-    def __init__(self, onnx_path, plan_path, mode="fp16"):
+    def __init__(self, onnx_path, plan_path, mode="fp16", calibration_cache="calibration.cache",
+                 calibration_dataset="", calibration_image_size="", 
+                 calibration_mean=[], calibration_std=[]):
         """
         :param onnx_path: local path of onnx file.
         :param plan_path: trt plan file to read/save.
         :param mode: inference mode, fp16/int8.
+        :param calibration_cache: int8 cache file of calibration.
+        :param calibration_dataset: dataset.txt for calibration.
+        :param calibration_image_size: iamge size (w, h) for calibration.
+        :param calibration_mean: image mean for calibration.
+        :param calibration_std: image std for calibration.
         """
         self.trt_logger = trt.Logger()
 
@@ -18,12 +25,24 @@ class TRTModel:
         self.plan_path = plan_path
         self.mode = mode
 
-        self.parse_input_shape = []
-        self.parse_output_shape= []
+        # for int8 calibration
+        if self.mode == "int8":
+            self.calib = self._get_calibrator(calibration_cache, calibration_dataset, 
+                                              calibration_image_size, calibration_mean, calibration_std)
 
+        # init
         self.engine = self._get_engine()
+
         self.execution_context = self.engine.create_execution_context()
         self.inputs, self.outputs, self.bindings, self.stream = common.allocate_buffers(self.engine)
+
+    def _get_calibrator(self, cache, dataset, size, mean, std):
+        if not os.path.exists(dataset):
+            raise Exception("Calibration dataset: {} not exist!".format(self.calibration_dataset))
+
+        calib = calibrator.EntropyCalibrator(dataset, cache, size, mean, std)
+
+        return calib
 
     def _check_network(self, network):
         """check network
@@ -62,8 +81,9 @@ class TRTModel:
                 print("set FP16 mode.")
             if self.mode == "int8":
                 config.set_flag(trt.BuilderFlag.INT8)
+                config.int8_calibrator = self.calib
                 print("set INT8 mode.")
-            
+
         # Parse model file
         print('Loading ONNX file from path {}...'.format(self.onnx_path))
         with open(self.onnx_path, 'rb') as model:

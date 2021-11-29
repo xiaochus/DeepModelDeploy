@@ -1,51 +1,14 @@
-#
-# Copyright (c) 2021, NVIDIA CORPORATION. All rights reserved.
-#
-# Licensed under the Apache License, Version 2.0 (the "License");
-# you may not use this file except in compliance with the License.
-# You may obtain a copy of the License at
-#
-#     http://www.apache.org/licenses/LICENSE-2.0
-#
-# Unless required by applicable law or agreed to in writing, software
-# distributed under the License is distributed on an "AS IS" BASIS,
-# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-# See the License for the specific language governing permissions and
-# limitations under the License.
-#
-
-import tensorrt as trt
 import os
-
-import pycuda.driver as cuda
-import pycuda.autoinit
-from PIL import Image
+import cv2
 import numpy as np
 
-# Returns a numpy buffer of shape (num_images, 1, 28, 28)
-def load_mnist_data(filepath):
-    with open(filepath, "rb") as f:
-        raw_buf = np.fromstring(f.read(), dtype=np.uint8)
-    # Make sure the magic number is what we expect
-    assert raw_buf[0:4].view(">i4")[0] == 2051
-    num_images = raw_buf[4:8].view(">i4")[0]
-    image_c = 1
-    image_h = raw_buf[8:12].view(">i4")[0]
-    image_w = raw_buf[12:16].view(">i4")[0]
-    # Need to scale all values to the range of [0, 1]
-    return np.ascontiguousarray((raw_buf[16:] / 255.0).astype(np.float32).reshape(num_images, image_c, image_h, image_w))
+import tensorrt as trt
+import pycuda.driver as cuda
+import pycuda.autoinit
 
-# Returns a numpy buffer of shape (num_images)
-def load_mnist_labels(filepath):
-    with open(filepath, "rb") as f:
-        raw_buf = np.fromstring(f.read(), dtype=np.uint8)
-    # Make sure the magic number is what we expect
-    assert raw_buf[0:4].view(">i4")[0] == 2049
-    num_labels = raw_buf[4:8].view(">i4")[0]
-    return np.ascontiguousarray(raw_buf[8:].astype(np.int32).reshape(num_labels))
 
-class MNISTEntropyCalibrator(trt.IInt8EntropyCalibrator2):
-    def __init__(self, training_data, cache_file, batch_size=64):
+class EntropyCalibrator(trt.IInt8EntropyCalibrator2):
+    def __init__(self, training_data, cache_file, image_size, mean=[0, 0, 0], std = [1, 1, 1], batch_size=2):
         # Whenever you specify a custom constructor for a TensorRT class,
         # you MUST call the constructor of the parent explicitly.
         trt.IInt8EntropyCalibrator2.__init__(self)
@@ -53,12 +16,43 @@ class MNISTEntropyCalibrator(trt.IInt8EntropyCalibrator2):
         self.cache_file = cache_file
 
         # Every time get_batch is called, the next batch of size batch_size will be copied to the device and returned.
-        self.data = load_mnist_data(training_data)
+        self.data = self._load_data(training_data, image_size, mean, std)
         self.batch_size = batch_size
         self.current_index = 0
 
+        print("Calibration data shape: ", self.data.shape)
+
         # Allocate enough memory for a whole batch.
         self.device_input = cuda.mem_alloc(self.data[0].nbytes * self.batch_size)
+
+    def _load_data(self, training_data, image_size, mean, std):
+        data = []
+        mean = np.array(mean)
+        std = np.array(std)
+
+        with open(training_data, 'r') as f:
+            lines = f.readlines()
+
+        for line in lines:
+            line = line.strip()
+
+            if os.path.exists(line):
+                img = cv2.imread(line)
+
+                img = cv2.resize(img, image_size)
+                img = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
+                img = img / 255.0
+                img = img - mean
+                img = img / std
+                img = np.transpose(img, (2, 0, 1))
+                img = np.expand_dims(img, axis=0)
+
+                data.append(img)
+            else:
+                print("file {} not exist, skip it!".format(line))
+                continue
+
+        return np.concatenate(data, axis=0)
 
     def get_batch_size(self):
         return self.batch_size
@@ -79,10 +73,11 @@ class MNISTEntropyCalibrator(trt.IInt8EntropyCalibrator2):
         self.current_index += self.batch_size
         return [self.device_input]
 
-
     def read_calibration_cache(self):
         # If there is a cache, use it instead of calibrating again. Otherwise, implicitly return None.
         if os.path.exists(self.cache_file):
+            print("read cache file: {}".format(self.cache_file))
+
             with open(self.cache_file, "rb") as f:
                 return f.read()
 
