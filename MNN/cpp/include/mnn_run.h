@@ -17,7 +17,7 @@ class MNNModel {
 public:
     MNNModel(const string& mnnPath, const string& mode="half", const string& device="cpu");
 
-    void forawrd(const cv::Mat& image, vector<float>& output);
+    void forward(const cv::Mat& image, vector<float>& output);
 
     ~MNNModel();
 private:

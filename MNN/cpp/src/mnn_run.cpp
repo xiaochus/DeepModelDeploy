@@ -86,7 +86,7 @@ void MNNModel::init() {
  * @param image opencv image
  * @param output output float data
  */
-void MNNModel::forawrd(const cv::Mat& image, vector<float>& output) {
+void MNNModel::forward(const cv::Mat& image, vector<float>& output) {
     memcpy(this->hostInputTensor->host<float>(), image.data, this->hostInputTensor->size());
 
     this->modelInputTensor->copyFromHostTensor(this->hostInputTensor);
