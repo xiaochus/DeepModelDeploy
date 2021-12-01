@@ -8,7 +8,7 @@ This repo provide some deploy cases by python and cpp. Generally, we test/eval/s
 
 *Current support framework:* `OnnxRuntime\TensorRT\MNN\RKNN-Toolkit`.
 
-**still under developing...
+**still under developing...**
 
 ## Requirement
 
@@ -25,7 +25,7 @@ This repo provide some deploy cases by python and cpp. Generally, we test/eval/s
 - TensorRT 8.0.3.4
 - MNN 1.2.0
 
-# Acknowledgement
+## Acknowledgement
 
 - [Pytorch](https://github.com/pytorch/pytorch)
 - [TensorRT](https://github.com/NVIDIA/TensorRT)
