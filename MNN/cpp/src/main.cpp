@@ -20,7 +20,7 @@ int main() {
     img = ((img - mean) / stdv);
 
     vector<float> output;
-    model.forawrd(img, output);
+    model.forward(img, output);
     cout << "output size: " << to_string(output.size()) << endl;
 
     return 0;
