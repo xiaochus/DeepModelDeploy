@@ -1,15 +1,12 @@
-#include "mnn_run.h"
+#include "onnx_run.h"
 
 
 int main() {
-    // /root/MNN-1.2.0/build/MNNConvert -f ONNX --modelFile net.onnx --MNNModel net.mnn --bizCode biz
-    string modelPath = "net.mnn";
-    string mode = "fp16";
-    string device = "cpu";
+    string modelPath = "/root/workspace/DeepModelDeploy/net.onnx";
     string testImagePath = "/mnt/d/xiaochu/Pictures/005.jpg";
 
     // model
-    MNNModel model(modelPath, mode, device);
+    ONNXModel model(modelPath);
 
     // image preprocess
     cv::Scalar mean = {0.485, 0.456, 0.406};
@@ -19,6 +16,7 @@ int main() {
     img.convertTo(img, CV_32F, 1 / 255.0);
     img = img - mean;
     img = img.mul(stdv);
+    cv::dnn::blobFromImage(img, img);    // hwc2chw
 
     vector<float> output;
     model.forward(img, output);
