@@ -15,6 +15,12 @@ ONNXModel::ONNXModel(const string& onnxPath): onnxPath(onnxPath), session(nullpt
  * 
  */
 void ONNXModel::init() {
+    struct stat buffer;
+    if (stat(this->onnxPath.c_str(), &buffer) != 0) {
+        cout << "model file: " << this->onnxPath << " not exists!" << endl; 
+        assert(0);
+    }
+
     string instanceName = "onnx_run_demo";
 
     // init session

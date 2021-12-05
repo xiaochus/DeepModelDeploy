@@ -24,6 +24,7 @@ This repo provide some deploy cases by python and cpp. Generally, we test/eval/s
 - OpenCV 4.5.0
 - TensorRT 8.0.3.4
 - MNN 1.2.0
+- onnxruntime 1.9.0
 
 ## Acknowledgement
 
