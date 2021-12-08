@@ -18,7 +18,7 @@
 
 class TRTModel {
 public:
-    TRTModel(int devId, const string& modelPath, const string& planPath, const string &mode, int batchSize, bool useDLACore=false);
+    TRTModel(int devId, const string& modelPath, const string& planPath, const string &mode, int batchSize, int useDLACoreIndex=-1);
 
     void forward(const vector<float>& inputs, vector<float>& output);
 
@@ -27,7 +27,7 @@ private:
     Logger trtLogger;
 
     int batchSize;
-    bool useDLACore;
+    int useDLACoreIndex;
     string modelPath;
     string planPath;
     string mode;

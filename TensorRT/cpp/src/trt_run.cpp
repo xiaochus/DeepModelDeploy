@@ -11,8 +11,8 @@
  * @param batchSize max batch_size of model
  * @param useDLACore if use nvidia dla core
  */
-TRTModel::TRTModel(int devId, const string& modelPath, const string& planPath, const string &mode, int batchSize, bool useDLACore):
-        modelPath(modelPath), planPath(planPath), mode(mode), batchSize(batchSize), useDLACore(useDLACore), 
+TRTModel::TRTModel(int devId, const string& modelPath, const string& planPath, const string &mode, int batchSize, int useDLACoreIndex):
+        modelPath(modelPath), planPath(planPath), mode(mode), batchSize(batchSize), useDLACoreIndex(useDLACoreIndex), 
         mEngine(nullptr), mStream(nullptr), mContext(nullptr) {
     cudaSetDevice(devId);
     cout << "Set cuda device id: " << to_string(devId) << endl;
@@ -63,6 +63,7 @@ bool TRTModel::init() {
         if (!isSupport)
             cout << "this device may not fast on fp16 mode." << endl;
         config->setFlag(nvinfer1::BuilderFlag::kFP16);
+        cout << "set fp16" << endl;
     }
 
     if (this->mode == "int8") {
@@ -70,11 +71,14 @@ bool TRTModel::init() {
         if (!isSupport)
             cout << "this device may not fast on int8 mode." << endl;
         config->setFlag(nvinfer1::BuilderFlag::kINT8);
+        cout << "set int8" << endl;
     }
 
     // set DLA if use jetson device
-    if (this->useDLACore)
+    if (this->useDLACoreIndex != -1) {
+        cout << "use DLA core index: " << to_string(this->useDLACoreIndex) << endl;
         this->enableDLA(builder.get(), config.get());
+    }
 
     // build trt engine
     SampleUniquePtr<nvinfer1::IHostMemory> plan{builder->buildSerializedNetwork(*network, *config)};
@@ -166,7 +170,7 @@ void TRTModel::enableDLA(nvinfer1::IBuilder* builder, nvinfer1::IBuilderConfig* 
     }
 
     config->setDefaultDeviceType(nvinfer1::DeviceType::kDLA);
-    config->setDLACore(coreNum);
+    config->setDLACore(this->useDLACoreIndex);
     config->setFlag(nvinfer1::BuilderFlag::kSTRICT_TYPES);
 }
 
