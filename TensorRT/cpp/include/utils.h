@@ -77,17 +77,6 @@ private:
     void* bufferData;
 };
 
-// bool fileExistCheck(const string& filePath) {
-//     bool status = true;
-
-//     struct stat buffer;
-//     if (stat(filePath.c_str(), &buffer) != 0) {
-//         status = false;
-//     }
-
-//     return status;
-// }
-
 
 /**
  * get byte size of datatype

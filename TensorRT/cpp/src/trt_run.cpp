@@ -15,17 +15,27 @@ TRTModel::TRTModel(int devId, const string& modelPath, const string& planPath, c
         modelPath(modelPath), planPath(planPath), mode(mode), batchSize(batchSize), useDLACoreIndex(useDLACoreIndex), 
         mEngine(nullptr), mStream(nullptr), mContext(nullptr) {
     cudaSetDevice(devId);
-    cout << "Set cuda device id: " << to_string(devId) << endl;
+    cout << "set cuda device id: " << to_string(devId) << endl;
 
-    bool status = this->init();
+    bool status = false;
+
+    if (this->fileExistCheck(this->planPath)) {
+        cout << "load trt engine from plan file: " << this->planPath << endl;
+        this->loadEngine();
+    } else {
+        status = this->constructModel();
+        assert(status);
+    }
+
+    status = this->init();
     assert(status);
 }
 
 /**
- * @brief create trt engine and init trt runtime.
+ * @brief create trt engine from onnx.
  * 
  */
-bool TRTModel::init() {
+bool TRTModel::constructModel() {
     // create engine builder
     auto builder = SampleUniquePtr<nvinfer1::IBuilder>(nvinfer1::createInferBuilder(this->trtLogger));
     if (!builder)
@@ -96,6 +106,14 @@ bool TRTModel::init() {
 
     this->saveEngine();
 
+    return true;
+}
+
+/**
+ * @brief init trt runtime.
+ * 
+ */
+bool TRTModel::init() {
     // create cuda stream
     CHECK(cudaStreamCreate(&this->mStream));
     // create cuda execute context
@@ -173,6 +191,21 @@ void TRTModel::enableDLA(nvinfer1::IBuilder* builder, nvinfer1::IBuilderConfig* 
     config->setDLACore(this->useDLACoreIndex);
     config->setFlag(nvinfer1::BuilderFlag::kSTRICT_TYPES);
 }
+
+/**
+ * @brief check file exist status.
+ * 
+ */
+bool TRTModel::fileExistCheck(const string& filePath) {
+    bool status = true;
+
+    struct stat buffer;
+    if (stat(filePath.c_str(), &buffer) != 0) {
+        status = false;
+    }
+
+    return status;
+};
 
 /**
  * @brief load engine from plan file.

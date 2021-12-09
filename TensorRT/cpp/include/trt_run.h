@@ -41,6 +41,8 @@ private:
 
     bool init();
 
+    bool constructModel();
+
     void checkNetwork(nvinfer1::INetworkDefinition *network);
 
     void enableDLA(nvinfer1::IBuilder *builder, nvinfer1::IBuilderConfig *config, bool allowGPUFallback = true);
@@ -48,6 +50,8 @@ private:
     bool loadEngine();
 
     bool saveEngine();
+
+    bool fileExistCheck(const string& filePath);
 
     void copyData(void *dstPtr, const void *srcPtr, int64_t byteSize, cudaMemcpyKind memcpyType, bool async=true, const cudaStream_t &stream=nullptr);
 };
