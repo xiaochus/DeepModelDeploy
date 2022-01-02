@@ -1,18 +1,25 @@
 #include <chrono>
 #include <opencv2/opencv.hpp>
+#include <string>
 
 #include "trt_run.h"
+
+using namespace std;
 
 
 int main() {
     string modelPath = "/root/workspace/DeepModelDeploy/net.onnx";
     string planPath = "/root/workspace/DeepModelDeploy/net.plan";
     string testImagePath = "/mnt/d/xiaochu/Pictures/005.jpg";
-    string mode = "fp16";
+    // string mode = "fp16";
+    string mode = "int8";
     int batch = 1;
 
+    string calDataFileName = "/root/workspace/DeepModelDeploy/dataset.txt";
+    string calTableName = "/root/workspace/DeepModelDeploy/calibration.cache";
+
     // model
-    TRTModel model(0, modelPath, planPath, mode, batch);
+    TRTModel model(0, modelPath, planPath, mode, batch, calDataFileName, calTableName);
 
     // image preprocess
     cv::Scalar mean = {0.485, 0.456, 0.406};

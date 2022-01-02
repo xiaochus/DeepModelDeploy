@@ -11,15 +11,15 @@
  * @param batchSize max batch_size of model
  * @param useDLACore if use nvidia dla core
  */
-TRTModel::TRTModel(int devId, const string& modelPath, const string& planPath, const string &mode, int batchSize, int useDLACoreIndex):
-        modelPath(modelPath), planPath(planPath), mode(mode), batchSize(batchSize), useDLACoreIndex(useDLACoreIndex), 
+TRTModel::TRTModel(int devId, const string& modelPath, const string& planPath, const string &mode, int batchSize, const string& calDataFileName, const string& calTableName, int useDLACoreIndex):
+        modelPath(modelPath), planPath(planPath), mode(mode), batchSize(batchSize), useDLACoreIndex(useDLACoreIndex), calDataFileName(calDataFileName), calTableName(calTableName),
         mEngine(nullptr), mStream(nullptr), mContext(nullptr) {
     cudaSetDevice(devId);
     cout << "set cuda device id: " << to_string(devId) << endl;
 
     bool status = false;
 
-    if (this->fileExistCheck(this->planPath)) {
+    if (fileExistCheck(this->planPath)) {
         cout << "load trt engine from plan file: " << this->planPath << endl;
         this->loadEngine();
     } else {
@@ -68,6 +68,9 @@ bool TRTModel::constructModel() {
     builder->setMaxBatchSize(this->batchSize);
     config->setMaxWorkspaceSize(1 << 30);
 
+    // Calibrator life time needs to last until after the engine is built.
+    unique_ptr<nvinfer1::IInt8Calibrator> calibrator;
+
     if (this->mode == "fp16") {
         bool isSupport = builder->platformHasFastFp16();
         if (!isSupport)
@@ -78,10 +81,18 @@ bool TRTModel::constructModel() {
 
     if (this->mode == "int8") {
         bool isSupport = builder->platformHasFastInt8();
-        if (!isSupport)
+        if (!isSupport) {
             cout << "this device may not fast on int8 mode." << endl;
-        config->setFlag(nvinfer1::BuilderFlag::kINT8);
-        cout << "set int8" << endl;
+            config->setFlag(nvinfer1::BuilderFlag::kFP16);
+            cout << "set fp16" << endl;
+        } else {
+            config->setFlag(nvinfer1::BuilderFlag::kINT8);
+
+            // set int8 calibrator
+            calibrator.reset(new Int8EntropyCalibrator(this->calDataFileName, this->calTableName, this->batchSize, this->inputWidth, this->inputHeight));
+            config->setInt8Calibrator(calibrator.get());
+            cout << "set int8" << endl;
+        }
     }
 
     // set DLA if use jetson device
@@ -150,6 +161,8 @@ void TRTModel::checkNetwork(nvinfer1::INetworkDefinition *network) {
     for (int i = 0; i < network->getNbInputs(); i++) {
         auto input = network->getInput(i);
         auto dims = input->getDimensions();
+        this->inputWidth = dims.d[2];
+        this->inputHeight = dims.d[1];
         string shape = "(" + to_string(dims.d[0]) + ", " + to_string(dims.d[1]) + ", " + to_string(dims.d[2])  + ", " + to_string(dims.d[3]) + ")" ;
         cout << "Input: " << to_string(i) << " | Name: " << input->getName() << " | shape: " << shape << endl;
     }
@@ -191,21 +204,6 @@ void TRTModel::enableDLA(nvinfer1::IBuilder* builder, nvinfer1::IBuilderConfig* 
     config->setDLACore(this->useDLACoreIndex);
     config->setFlag(nvinfer1::BuilderFlag::kSTRICT_TYPES);
 }
-
-/**
- * @brief check file exist status.
- * 
- */
-bool TRTModel::fileExistCheck(const string& filePath) {
-    bool status = true;
-
-    struct stat buffer;
-    if (stat(filePath.c_str(), &buffer) != 0) {
-        status = false;
-    }
-
-    return status;
-};
 
 /**
  * @brief load engine from plan file.

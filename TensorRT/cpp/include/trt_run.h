@@ -1,24 +1,21 @@
-#include <memory>
+#ifndef TRT_RUN_H
+#define TRT_RUN_H
+
 #include <cassert>
 #include <sstream>
 #include <iostream>
-#include <fstream>
 #include <cstring>
-#include <sys/stat.h>
-#include <sys/types.h>
-#include <opencv2/opencv.hpp>
 
-#include "NvInfer.h"
 #include "NvOnnxConfig.h"
 #include "NvOnnxParser.h"
-#include <cuda_runtime_api.h>
 
 #include "utils.h"
+#include "calibrator.h"
 
 
 class TRTModel {
 public:
-    TRTModel(int devId, const string& modelPath, const string& planPath, const string &mode, int batchSize, int useDLACoreIndex=-1);
+    TRTModel(int devId, const string& modelPath, const string& planPath, const string &mode, int batchSize, const string& calDataFileName="", const string& calTableName="", int useDLACoreIndex=-1);
 
     void forward(const vector<float>& inputs, vector<float>& output);
 
@@ -27,6 +24,10 @@ private:
     Logger trtLogger;
 
     int batchSize;
+    int inputWidth;
+    int inputHeight;
+    string calDataFileName;
+    string calTableName;
     int useDLACoreIndex;
     string modelPath;
     string planPath;
@@ -51,7 +52,7 @@ private:
 
     bool saveEngine();
 
-    bool fileExistCheck(const string& filePath);
-
     void copyData(void *dstPtr, const void *srcPtr, int64_t byteSize, cudaMemcpyKind memcpyType, bool async=true, const cudaStream_t &stream=nullptr);
 };
+
+#endif

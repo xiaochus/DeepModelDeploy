@@ -1,7 +1,18 @@
+#ifndef UTILS_H
+#define UTILS_H
+
 #include <numeric>
 #include <string>
 #include <vector>
+#include <memory>
+#include <iostream>
+#include <fstream>
+#include <sys/stat.h>
+#include <sys/types.h>
+#include <opencv2/opencv.hpp>
+#include <cuda_runtime_api.h>
 
+#include "NvInfer.h"
 #include "NvInferRuntimeCommon.h"
 
 using namespace std;
@@ -99,3 +110,20 @@ inline uint32_t getElementSize(nvinfer1::DataType t) noexcept {
 inline int64_t volume(const nvinfer1::Dims& d) {
     return accumulate(d.d, d.d + d.nbDims, 1, multiplies<int64_t>());
 }
+
+
+/**
+ * @brief check file exist status.
+ */
+static bool fileExistCheck(const string& filePath) {
+    bool status = true;
+
+    struct stat buffer;
+    if (stat(filePath.c_str(), &buffer) != 0) {
+        status = false;
+    }
+
+    return status;
+};
+
+# endif
